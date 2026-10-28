@@ -10,8 +10,6 @@
     paper: 'rock',
     label: 'SILENT FILM',
     numColor: 'rgba(220,216,192,0.14)',
-    titleColor: '#d8d4c0',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#1f2620', speed: 1 },
     rider: { scale: 1 },
   });

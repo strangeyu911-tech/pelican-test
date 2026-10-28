@@ -10,8 +10,6 @@
     paper: 'archive',
     label: 'MALLSOFT',
     numColor: 'rgba(60,20,80,0.16)',
-    titleColor: '#2a1038',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#b0609c', speed: 1 },
     rider: { scale: 1 },
   });

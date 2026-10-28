@@ -10,8 +10,6 @@
     paper: 'silk',
     label: 'HANDSCROLL',
     numColor: 'rgba(80,60,20,0.14)',
-    titleColor: '#33301f',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#cdbe98', speed: 1 },
     rider: { scale: 1 },
   });

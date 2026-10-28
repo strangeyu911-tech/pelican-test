@@ -10,8 +10,6 @@
     paper: 'rubbing',
     label: 'SVG SOURCE',
     numColor: 'rgba(200,220,240,0.16)',
-    titleColor: '#d8e0ea',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#161d26', speed: 1 },
     rider: { scale: 1 },
   });

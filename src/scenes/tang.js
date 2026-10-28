@@ -10,8 +10,6 @@
     paper: 'xuan',
     label: 'INK ON SILK',
     numColor: 'rgba(60,50,40,0.13)',
-    titleColor: '#2a2622',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#d8cfbc', speed: 1 },
     rider: { scale: 1 },
   });

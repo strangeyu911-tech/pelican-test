@@ -10,8 +10,6 @@
     paper: 'washi',
     label: 'CODEX FOLD',
     numColor: 'rgba(255,230,200,0.20)',
-    titleColor: '#f2e4c8',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#9a4a34', speed: 1 },
     rider: { scale: 1 },
   });

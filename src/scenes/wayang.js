@@ -10,8 +10,6 @@
     paper: 'rock',
     label: 'SHADOW PLAY',
     numColor: 'rgba(255,230,200,0.18)',
-    titleColor: '#f0dcc0',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#7e4420', speed: 1 },
     rider: { scale: 1 },
   });

@@ -10,8 +10,6 @@
     paper: 'washi',
     label: 'TEMPERA',
     numColor: 'rgba(255,240,210,0.18)',
-    titleColor: '#f6e6c8',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#b04c2c', speed: 1 },
     rider: { scale: 1 },
   });

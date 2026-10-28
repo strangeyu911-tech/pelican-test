@@ -10,8 +10,6 @@
     paper: 'rubbing',
     label: 'CRT DISPLAY',
     numColor: 'rgba(126,240,138,0.20)',
-    titleColor: '#7ef08a',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#0c1a0e', speed: 1 },
     rider: { scale: 1 },
   });

@@ -10,8 +10,6 @@
     paper: 'washi',
     label: 'GARDEN SCENE',
     numColor: 'rgba(60,40,10,0.18)',
-    titleColor: '#33240c',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#b98a34', speed: 1 },
     rider: { scale: 1 },
   });

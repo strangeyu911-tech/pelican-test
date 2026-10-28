@@ -10,8 +10,6 @@
     paper: 'archive',
     label: 'CARTRIDGE',
     numColor: 'rgba(255,255,255,0.18)',
-    titleColor: '#ffffff',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#33459c', speed: 1 },
     rider: { scale: 1 },
   });

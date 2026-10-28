@@ -10,8 +10,6 @@
     paper: 'archive',
     label: 'OIL ON CANVAS',
     numColor: 'rgba(230,220,180,0.16)',
-    titleColor: '#e8e2c8',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#25366c', speed: 1 },
     rider: { scale: 1 },
   });

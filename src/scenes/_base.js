@@ -317,17 +317,30 @@
         B.drawRider(ctx, t, Object.assign({ scale: 1.42 }, sp.rider));
         V.exitCam(ctx);
 
-        // ---- 标题卡（屏幕坐标，每帧随 alpha 变，不能烤）----
-        // 放在右侧纸边（画框外），纵向居中：既不压画框线，也不挡画里的骑手。
-        V.text.titleCardAt(ctx, sc, u, {
-          x: 1544, y: 566, dur,
-          color: titleColor,
-          accent: titleAccent,
-          cnFont: sp.cnFont || 'cn',
-          lineW: 348,
-          cnSize: 40, enSize: 20,
-          cnWeight: 700,
-        });
+        // ---- 题名（主题词）----
+        // 每格一套样式 + 一个位置，见 src/kit/titles.js 的 PLAN。
+        // 统一三行排版被否掉了：一部讲美术史的片子，题名自己也该是美术史的一部分。
+        const ink = B.inkFor(tint);
+        const plan = (V.titles && V.titles.PLAN[meta.id]) || {};
+        const extra = sp.title || {};          // 单独覆盖：ink / accent / size / x / y …
+        if (V.titles) {
+          V.titles.draw(ctx, plan.style || 'plate', sc, u, Object.assign(
+            {
+              dur,
+              cnFont: sp.cnFont || 'cn',
+              lineW: 348,
+              cnSize: 40,
+              enSize: 20,
+            },
+            plan,
+            {
+              // 优先顺序：样式表里点名的墨色 > 版块自己声明的 > 按底色自动挑的
+              ink: plan.ink || sp.titleColor || ink.ink,
+              accent: plan.accent || sp.titleAccent || ink.inkSoft,
+            },
+            extra
+          ));
+        }
 
         // ---- 版块内的三小节提示（阶段 1 自查用，可关）----
         if (V.DEBUG_BEATS) {

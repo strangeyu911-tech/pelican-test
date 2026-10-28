@@ -10,8 +10,6 @@
     paper: 'archive',
     label: 'INSTANT MESSAGE',
     numColor: 'rgba(30,40,60,0.14)',
-    titleColor: '#18202c',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#c4cfdb', speed: 1 },
     rider: { scale: 1 },
   });

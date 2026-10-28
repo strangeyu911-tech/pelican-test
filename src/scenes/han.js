@@ -10,8 +10,6 @@
     paper: 'rubbing',
     label: 'STONE RELIEF',
     numColor: 'rgba(255,255,255,0.14)',
-    titleColor: '#efeee8',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#23201a', speed: 1 },
     rider: { scale: 1 },
   });

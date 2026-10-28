@@ -97,7 +97,16 @@ async function runChunk(slice, idx) {
         // 先写临时文件再改名：中途被杀不会留下半张图被当成"已完成"
         const tmp = file + '.part';
         fs.writeFileSync(tmp, png);
-        fs.renameSync(tmp, file);
+        // Windows 上偶尔会被杀软/索引服务锁住一瞬间，rename 报 EPERM。
+        // 重试几次（同步小睡用 Atomics.wait，不阻塞事件循环以外的东西）
+        let ok = false;
+        for (let a = 0; a < 5 && !ok; a++) {
+          try { fs.renameSync(tmp, file); ok = true; } catch (e) {
+            if (e.code !== 'EPERM' && e.code !== 'EBUSY') throw e;
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 40);
+          }
+        }
+        if (!ok) throw new Error('rename 重试 5 次仍失败: ' + file);
       } catch (e) {
         failed = failed || { t, file, error: e };
         break;

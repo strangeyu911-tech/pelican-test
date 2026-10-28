@@ -10,8 +10,6 @@
     paper: 'plaster',
     label: 'TOMB CHAPEL',
     numColor: 'rgba(60,40,10,0.18)',
-    titleColor: '#2e2412',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#d4b57a', speed: 1 },
     rider: { scale: 1 },
   });

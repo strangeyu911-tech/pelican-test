@@ -10,8 +10,6 @@
     paper: 'washi',
     label: 'TŌKAIDŌ ROAD',
     numColor: 'rgba(240,230,208,0.18)',
-    titleColor: '#f0e6d0',
-    titleAccent: 'rgba(255,255,255,0.78)',
     road: { color: '#3a5878', speed: 1 },
     rider: { scale: 1 },
   });
