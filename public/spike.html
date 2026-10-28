@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Pelican Test — perf spike</title>
+<style>
+  html,body{margin:0;padding:0;background:#000;overflow:hidden}
+  /* p5 2.x 会自己插入 <main> 并把 canvas 放进去；必须把它钉在视口左上角，
+     否则空容器会把 canvas 挤出视口（CDP 截图全黑的元凶） */
+  main{position:fixed;left:0;top:0;margin:0;padding:0;line-height:0}
+  canvas{display:block}
+</style>
+<script src="vendor/p5.min.js"></script>
+<script src="vendor/p5.brush.js"></script>
+</head>
+<body>
+<script src="/src/spike.js"></script>
+</body>
+</html>

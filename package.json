@@ -1,0 +1,13 @@
+{
+  "name": "pelican-test",
+  "version": "0.1.0",
+  "description": "The Pelican Test - a procedural p5.js + p5.brush film in 20 art styles",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "dependencies": {
+    "p5": "^2.3.4",
+    "p5.brush": "^2.2.3",
+    "puppeteer-core": "^25.16.0"
+  }
+}

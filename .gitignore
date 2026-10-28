@@ -1,0 +1,27 @@
+# 依赖
+node_modules/
+
+# 渲染产物：帧序列很大（8280 帧 ≈ 3 GB），不进仓库
+frames/
+frames_*/
+out/
+*.mp4
+*.wav
+*.part
+
+# 调画面时随手抓的帧，不进仓库
+docs/tmp/
+
+# 音频离线渲染的中间文件
+audio/*.wav
+audio/*.tmp
+
+# 系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器
+.vscode/
+.idea/
+*.swp

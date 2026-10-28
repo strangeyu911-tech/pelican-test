@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>鹈鹕测试 · The Pelican Test</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0a0c; overflow: hidden; }
+  /* p5 2.x 会自己插入 <main> 并把 canvas 放进去。必须把它钉死在视口左上角，
+     否则任何占位容器都会把 canvas 挤出视口（实测 y=1080，CDP 截图全黑的元凶）。 */
+  main { position: fixed; left: 0; top: 0; margin: 0; padding: 0; line-height: 0; }
+  canvas { display: block; }
+
+  #bar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 54px;
+    display: flex; align-items: center; gap: 14px; padding: 0 20px;
+    background: rgba(14, 14, 18, 0.92); color: #e8e4da;
+    font: 13px/1 "Noto Serif SC", "Songti SC", serif;
+    backdrop-filter: blur(8px); z-index: 10;
+    opacity: 0; transition: opacity .25s; pointer-events: none;
+  }
+  #bar.show { opacity: 1; pointer-events: auto; }
+  #play {
+    width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(232,228,218,.3);
+    background: transparent; color: #e8e4da; cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  #play:hover { background: rgba(232,228,218,.1); }
+  #seek { flex: 1; height: 3px; -webkit-appearance: none; background: rgba(232,228,218,.18); border-radius: 2px; cursor: pointer; }
+  #seek::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #e8e4da; }
+  #time { font-variant-numeric: tabular-nums; color: rgba(232,228,218,.65); flex: none; width: 104px; text-align: right; }
+  #name { flex: none; min-width: 190px; color: #e8e4da; }
+  #name b { font-weight: 700; }
+  #name span { color: rgba(232,228,218,.45); font-size: 11px; margin-left: 8px; letter-spacing: .06em; }
+  #hint { position: fixed; left: 20px; bottom: 66px; color: rgba(232,228,218,.35); font: 12px/1.5 "Noto Serif SC", serif; opacity: 0; transition: opacity .25s; }
+  #hint.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<script src="vendor/p5.min.js"></script>
+<script src="vendor/p5.brush.js"></script>
+
+<script src="src/kit/strings.js"></script>
+<script src="src/beat/timeline.js"></script>
+<script src="src/kit/frame.js"></script>
+<script src="src/kit/paper.js"></script>
+<script src="src/kit/text.js"></script>
+<script src="src/kit/layer.js"></script>
+<script src="src/rig/rig.js"></script>
+<script src="src/rig/pelican.js"></script>
+<script src="src/rig/bike.js"></script>
+<script src="src/scenes/_base.js"></script>
+
+<script src="src/scenes/sahara.js"></script>
+<script src="src/scenes/egypt.js"></script>
+<script src="src/scenes/han.js"></script>
+<script src="src/scenes/tang.js"></script>
+<script src="src/scenes/song.js"></script>
+<script src="src/scenes/qingming.js"></script>
+<script src="src/scenes/maya.js"></script>
+<script src="src/scenes/mughal.js"></script>
+<script src="src/scenes/bada.js"></script>
+<script src="src/scenes/wayang.js"></script>
+<script src="src/scenes/ukiyo.js"></script>
+<script src="src/scenes/starry.js"></script>
+<script src="src/scenes/scream.js"></script>
+<script src="src/scenes/nosferatu.js"></script>
+<script src="src/scenes/scope.js"></script>
+<script src="src/scenes/pixel.js"></script>
+<script src="src/scenes/chat.js"></script>
+<script src="src/scenes/vapor.js"></script>
+<script src="src/scenes/vertical.js"></script>
+<script src="src/scenes/code.js"></script>
+<script src="src/scenes/intro.js"></script>
+<script src="src/scenes/outro.js"></script>
+
+<script src="src/main.js"></script>
+
+<div id="bar">
+  <button id="play" title="播放 / 暂停">▶</button>
+  <div id="name"><b>—</b><span></span></div>
+  <input id="seek" type="range" min="0" max="1000" value="0">
+  <div id="time">0:00 / 2:18</div>
+</div>
+<div id="hint">空格播放 / 暂停　←→ 逐格</div>
+
+<script>
+(function () {
+  const bar = document.getElementById('bar');
+  const hint = document.getElementById('hint');
+  const btn = document.getElementById('play');
+  const seek = document.getElementById('seek');
+  const nameEl = document.getElementById('name');
+  const timeEl = document.getElementById('time');
+
+  let playing = false;
+  let t = 0;
+  let last = 0;
+  let mouseTimer = null;
+
+  const fmt = (s) => {
+    const m = Math.floor(s / 60), ss = Math.floor(s % 60);
+    return m + ':' + String(ss).padStart(2, '0');
+  };
+
+  function labelAt(tt) {
+    const sec = window.V.TL.at(tt);
+    if (sec.kind === 'scene') {
+      const sc = window.S.scenes[sec.index - 1];
+      return { main: String(sec.index).padStart(2, '0') + '　' + sc.cn, sub: sc.en + ' · ' + sc.era };
+    }
+    if (sec.kind === 'intro') return { main: '序', sub: 'Intro' };
+    return { main: '尾声', sub: 'Press Conference' };
+  }
+
+  function updateUI() {
+    const dur = window.V.TL.duration;
+    const l = labelAt(t);
+    nameEl.innerHTML = '<b>' + l.main + '</b><span>' + l.sub + '</span>';
+    timeEl.textContent = fmt(t) + ' / ' + fmt(dur);
+    seek.value = Math.round((t / dur) * 1000);
+  }
+
+  async function step(tt) {
+    t = Math.max(0, Math.min(window.V.TL.duration - 1e-3, tt));
+    await window.renderAt(t);
+    updateUI();
+  }
+
+  function loop(now) {
+    if (!playing) return;
+    const dt = (now - last) / 1000;
+    last = now;
+    t += dt;
+    if (t >= window.V.TL.duration) { t = window.V.TL.duration - 1e-3; playing = false; btn.textContent = '▶'; }
+    step(t).then(() => { if (playing) requestAnimationFrame(loop); });
+  }
+
+  btn.onclick = () => {
+    playing = !playing;
+    btn.textContent = playing ? '❚❚' : '▶';
+    if (playing) { last = performance.now(); requestAnimationFrame(loop); }
+  };
+
+  seek.oninput = () => {
+    const was = playing;
+    playing = false;
+    step((seek.value / 1000) * window.V.TL.duration).then(() => {
+      if (was) { playing = true; btn.textContent = '❚❚'; last = performance.now(); requestAnimationFrame(loop); }
+    });
+  };
+
+  // 空格播放/暂停，方向键逐格（按版块跳）
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); btn.onclick(); }
+    if (e.code === 'ArrowRight') {
+      const b = window.V.TL.boundaries.find((x) => x > t + 0.05);
+      if (b != null) step(b + 0.02);
+    }
+    if (e.code === 'ArrowLeft') {
+      const b = [...window.V.TL.boundaries].reverse().find((x) => x < t - 0.05);
+      if (b != null) step(b - 0.25);
+    }
+  });
+
+  // 鼠标移到下缘才显示控制条
+  window.addEventListener('mousemove', (e) => {
+    if (e.clientY > innerHeight - 120) {
+      bar.classList.add('show'); hint.classList.add('show');
+      clearTimeout(mouseTimer);
+      mouseTimer = setTimeout(() => { bar.classList.remove('show'); hint.classList.remove('show'); }, 2600);
+    }
+  });
+
+  window.addEventListener('pelican-ready', () => {
+    step(0);
+    bar.classList.add('show'); hint.classList.add('show');
+    setTimeout(() => { bar.classList.remove('show'); hint.classList.remove('show'); }, 3200);
+  });
+})();
+</script>
+</body>
+</html>
