@@ -101,8 +101,9 @@
         K.layerWash(c, main, { n: 12, alpha: 0.11, tone: '#191612', seed: 52, bias: 1.2 });
         K.layerWash(c, main, { n: 9, alpha: 0.07, tone: '#a29883', seed: 53, bias: 0.25 });
 
-        K.crevice(c, main, { n: 16, len: 130, ang: 1.42, thick: 3.2, alpha: 0.34, seed: 54 });
-        K.crevice(c, main, { n: 26, len: 60, ang: 1.30, thick: 1.8, alpha: 0.26, seed: 55 });
+        // 裂隙不能长：130px 的竖线在崖面上就是一道道刮痕。改成 60px、偏斜 25°。
+        K.crevice(c, main, { n: 10, len: 60, ang: 1.22, thick: 2.6, alpha: 0.22, seed: 54 });
+        K.crevice(c, main, { n: 22, len: 34, ang: 1.18, thick: 1.4, alpha: 0.18, seed: 55 });
 
         // 皴：短笔，只在崖顶一带密
         K.cunFlow(c, main, { lines: 40, per: 64, len: [6, 22], spread: 18, slant: 0.04, alpha: 0.18, thick: 1.0, seed: 71 });
