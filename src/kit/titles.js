@@ -467,7 +467,10 @@
     song:      { style: 'vertical', x: 1878, y: 128, size: 38, align: 'right' },
     qingming:  { style: 'vertical', x: 176,  y: 200, size: 40, align: 'left', border: 'slip' },
     maya:      { style: 'plaque',   x: 452,  y: 128, size: 33, align: 'left',
-                 gold: 'rgba(214,168,96,0.95)', goldSoft: 'rgba(214,168,96,0.55)' },
+                 // 抄本里没有"黑底金匾"这种东西：框是朱红的、底是石灰白的
+                 gold: '#b03a2e', goldSoft: 'rgba(176,58,46,0.45)',
+                 plaqueFill: 'rgba(247,240,222,0.97)',
+                 plaqueInk: '#1a1512', ink: '#1a1512', accent: 'rgba(26,21,18,0.62)' },
     mughal:    { style: 'plaque',   x: 960,  y: 92,  size: 37, align: 'center' },
     bada:      { style: 'vertical', x: 1396, y: 150, size: 56, align: 'left', seal: true },
     wayang:    { style: 'plaque',   x: 452,  y: 112, size: 37, align: 'left' },
