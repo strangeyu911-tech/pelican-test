@@ -13,7 +13,7 @@
 // 而每帧渲染本身是 t 的纯函数，所以切成连片段互不干扰。
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, openPage, grabPNG, ensureDir, parseArgs } from './_browser.mjs';
+import { ROOT, openPage, grabJpeg, ensureDir, parseArgs } from './_browser.mjs';
 
 const args = parseArgs(process.argv);
 const fps = Number(args.fps || 30);
@@ -35,7 +35,7 @@ const from = Number(args.from ?? 0);
 const to = Number(args.to ?? info.duration);
 const total = Math.max(1, Math.round(((to - from) * fps) / step));
 const digits = String(Math.round(info.duration * fps)).length + 1;
-const nameOf = (i) => `frame_${String(i).padStart(digits, '0')}.png`;
+const nameOf = (i) => `frame_${String(i).padStart(digits, '0')}.jpg`;
 
 // 计算本区间内实际要渲的帧号
 const all = [];
@@ -91,7 +91,7 @@ async function runChunk(slice, idx) {
       const t = f / fps;
       const file = path.join(outDir, nameOf(f));
       try {
-        const png = await grabPNG(ctx.page, t);
+        const png = await grabJpeg(ctx.page, t);
         const err = await ctx.page.evaluate(() => window.__lastError);
         if (err) throw new Error(String(err).slice(0, 600));
         // 先写临时文件再改名：中途被杀不会留下半张图被当成"已完成"

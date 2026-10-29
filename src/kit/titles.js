@@ -465,7 +465,7 @@
                  ink: '#e8e0cc', accent: 'rgba(232,224,204,0.62)' },
     tang:      { style: 'vertical', x: 1428, y: 220, size: 40, align: 'right' },
     song:      { style: 'vertical', x: 1878, y: 128, size: 38, align: 'right' },
-    qingming:  { style: 'vertical', x: 486,  y: 180, size: 44, align: 'left', border: 'slip' },
+    qingming:  { style: 'vertical', x: 176,  y: 200, size: 40, align: 'left', border: 'slip' },
     maya:      { style: 'plaque',   x: 452,  y: 128, size: 33, align: 'left',
                  gold: 'rgba(214,168,96,0.95)', goldSoft: 'rgba(214,168,96,0.55)' },
     mughal:    { style: 'plaque',   x: 960,  y: 92,  size: 37, align: 'center' },

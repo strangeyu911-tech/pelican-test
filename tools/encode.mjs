@@ -33,14 +33,14 @@ if (!fs.existsSync(framesDir)) {
   console.error(`找不到帧目录 ${framesDir}，先跑 node tools/render.mjs`);
   process.exit(1);
 }
-const files = fs.readdirSync(framesDir).filter((f) => /^frame_\d+\.png$/.test(f)).sort();
+const files = fs.readdirSync(framesDir).filter((f) => /^frame_\d+\.(png|jpg)$/.test(f)).sort();
 if (!files.length) {
-  console.error(`${framesDir} 里没有 frame_*.png`);
+  console.error(`${framesDir} 里没有 frame_*.jpg`);
   process.exit(1);
 }
 
 // frame_000001.png → 帧号 → 时间；用它算区间，避免目录里有多段不相邻的帧
-const numOf = (f) => Number(f.match(/(\d+)\.png$/)[1]);
+const numOf = (f) => Number(f.match(/(\d+)\.(png|jpg)$/)[1]);
 const first = numOf(files[0]);
 const last = numOf(files[files.length - 1]);
 const skip = Math.round(from * srcFps) - first;
@@ -54,7 +54,7 @@ const ffArgs = [
   '-y', '-hide_banner', '-loglevel', 'warning', '-stats',
   '-framerate', String(srcFps),
   '-start_number', String(first + Math.max(0, skip)),
-  '-i', path.join(framesDir, 'frame_%0' + String(files[0].match(/(\d+)\.png$/)[1].length) + 'd.png'),
+  '-i', path.join(framesDir, 'frame_%0' + String(files[0].match(/(\d+)\.(png|jpg)$/)[1].length) + 'd.jpg'),
 ];
 if (every > 1) {
   // 输入按 srcFps 排时间轴，选出每第 N 帧，再锁到目标帧率

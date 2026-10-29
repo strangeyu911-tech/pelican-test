@@ -134,9 +134,12 @@
       // 顺序很重要：飘带必须先画，让身体把它们"长出来"的根部盖住；
       // 反过来画，飘带就会横穿身体。
       const p = V.rig.pose(t);
-      const grow = V.clamp(u / 1.2);
+      // 这一格只有 **2 小节（4 秒）**（timeline 里 tang: 2）。
+      // 之前按 3 小节的 6 秒编节奏，第 2、3 拍根本播不到 —— 全部改成按 dur 比例。
+      const d = meta.dur || 4;
+      const grow = V.clamp(u / (d * 0.3));
       const baseLen = 210 + grow * 250;
-      const surge = V.envelope(u, 1.9, 2.7, 3.4, 4.2);
+      const surge = V.envelope(u, d * 0.34, d * 0.5, d * 0.72, d * 0.9);
 
       ctx.save();
       ctx.translate(V.RIDER_X, V.ROAD_Y);

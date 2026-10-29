@@ -109,6 +109,12 @@ export async function grabPNG(page, t) {
   return Buffer.from(dataUrl.split(',')[1], 'base64');
 }
 
+/** 逐帧导出用：JPEG（体积是 PNG 的 1/8） */
+export async function grabJpeg(page, t) {
+  const dataUrl = await page.evaluate(async (tt) => await window.grabFrameJpeg(tt), t);
+  return Buffer.from(dataUrl.split(',')[1], 'base64');
+}
+
 export function ensureDir(p) {
   fs.mkdirSync(p, { recursive: true });
   return p;

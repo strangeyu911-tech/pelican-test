@@ -291,14 +291,20 @@
   };
 
   /** 渲染并导出当前帧为 PNG 的 base64（避开 CDP 截图的时机问题，快 1.7~2.6 倍） */
-  window.grabFrame = async function (t) {
+  /** 抓一帧，返回 dataURL。
+   *  png=true  → PNG（单帧截图用，无损，文件大但只存一张）
+   *  png=false → JPEG q0.94（整片逐帧导出用：8280 张 PNG 要 8.8G，JPEG 只要 1G） */
+  async function grab(t, png) {
     await window.renderAt(t);
     const cv = document.querySelector('canvas');
-    const blob = await new Promise((res) => cv.toBlob(res, 'image/png'));
+    const blob = await new Promise((res) =>
+      (png ? cv.toBlob(res, 'image/png') : cv.toBlob(res, 'image/jpeg', 0.94)));
     return await new Promise((res) => {
       const f = new FileReader();
       f.onload = () => res(f.result);
       f.readAsDataURL(blob);
     });
-  };
+  }
+  window.grabFrame = (t) => grab(t, true);        // 截图：PNG
+  window.grabFrameJpeg = (t) => grab(t, false);   // 逐帧导出：JPEG
 })();
