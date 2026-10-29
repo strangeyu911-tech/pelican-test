@@ -1,109 +1,31 @@
 /* scenes/song.js — 05 宋代山水（28 – 36 s，4 小节）
  *
- * 致敬《溪山行旅图》：一座占满画幅的巨碑式主峰，人在山脚小到看不见。
+ * 致敬《溪山行旅图》一路的"巨碑山水"：主峰占据画幅中央，人在山脚小到看不见。
  *
- * 梗：前两小节观众根本找不到鹈鹕 —— 它就是山道上一个点；
- *     第 2 小节镜头推上来，第 3 小节才认出来是只骑车的鹈鹕。
+ * 梗：前两小节观众根本找不到鹈鹕 —— 它就是山道上一个点；镜头推上来才认出是只骑车的鹈鹕。
  *
- *   ① 0 – 2   全景，主峰压下来，鹈鹕 0.30 倍，几乎是个墨点
+ *   ① 0 – 2   全景，主峰压下来，鹈鹕 0.30 倍
  *   ② 2 – 4   镜头推近
  *   ③ 4 – 6   认出来了
  *   ④ 6 – 8   继续推，朝下一个画框去
  *
- * 水墨要点（这版踩过的坑）：
- *   · 山脊不能做二次曲线平滑 —— 会把峰头抹成一朵云。必须用折线，硬转角。
- *   · 雾不能横着刷一条白带 —— 会变成贯穿全屏的灰条纹。
- *     正确做法是**把山脚溶掉**：从透明渐变到纸色，山自然就消失在雾里。
- *   · 树要成组、有高矮疏密，单棵细竿像天线。
+ * 画法全部走 src/kit/ink.js：
+ *   · 山体 = 上浓下淡的底 + 噪声水痕（不是平涂，也不是几块大灰斑）
+ *   · 皴   = 抖动网格上的短笔（不是随机撒 —— 随机会结块又留空，长成草）
+ *   · 苔点 = 沿山脊布点（不是均匀撒）
+ *   · 山脚 = 在轮廓内部用纸色淡出（不盖雾带，盖一条一定留边）
+ *
+ * 版面按真迹比例：主峰平顶占画幅中间 43%，崖顶在 6% 高，崖脚 65%；
+ * 左右各一座矮崖；雾在山脚；中景土坡长树；前景河滩 + 坡石。
  */
 (function () {
   const V = (window.V = window.V || {});
   const S = (window.V.scenes = window.V.scenes || {});
   const B = V.base;
+  const K = V.ink;
 
   const PAPER = '#efe8d8';
-  const M_FAR = '#c3bcab';
-  const M_MID = '#8f8877';
-  const M_NEAR = '#4a453a';
-  const M_DARK = '#2b2721';
 
-  /** 折线山体（硬转角，不做平滑） */
-  function massif(c, pts, fill, alpha) {
-    c.save();
-    c.globalAlpha = alpha;
-    c.fillStyle = fill;
-    c.beginPath();
-    c.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
-    c.lineTo(pts[pts.length - 1][0], V.H + 60);
-    c.lineTo(pts[0][0], V.H + 60);
-    c.closePath();
-    c.fill();
-    c.restore();
-  }
-
-  /** 把山脚溶进雾里：从透明渐变到纸色 */
-  function dissolve(c, yTop, yBot) {
-    const g = c.createLinearGradient(0, yTop, 0, yBot);
-    g.addColorStop(0, V.rgba(PAPER, 0));
-    g.addColorStop(0.55, V.rgba(PAPER, 0.45));
-    g.addColorStop(1, V.rgba(PAPER, 1));
-    c.save();
-    c.fillStyle = g;
-    c.fillRect(0, yTop, V.W, yBot - yTop);
-    c.restore();
-  }
-
-  /** 皴：短促斜笔，密在暗部 */
-  function cun(c, rnd, x0, y0, x1, y1, n, color, alpha, tilt) {
-    c.save();
-    c.strokeStyle = color;
-    c.lineCap = 'round';
-    const k = tilt == null ? 0.45 : tilt;
-    for (let i = 0; i < n; i++) {
-      const x = x0 + (x1 - x0) * rnd();
-      const y = y0 + (y1 - y0) * rnd();
-      const len = 7 + rnd() * 24;
-      c.globalAlpha = alpha * (0.2 + rnd() * 0.8);
-      c.lineWidth = 0.7 + rnd() * 2.2;
-      c.beginPath();
-      c.moveTo(x, y);
-      c.lineTo(x + len * k, y + len * (0.75 + rnd() * 0.5));
-      c.stroke();
-    }
-    c.restore();
-  }
-
-  /** 一丛松：两三棵一组，高矮错开 */
-  function grove(c, rnd, x, y, h, n) {
-    for (let i = 0; i < n; i++) {
-      const px = x + (i - (n - 1) / 2) * h * 0.42 + rnd.gauss() * h * 0.08;
-      const ph = h * (0.62 + rnd() * 0.55);
-      const py = y + rnd.gauss() * h * 0.12;
-      c.save();
-      c.globalAlpha = 0.55 + rnd() * 0.4;
-      c.strokeStyle = M_DARK;
-      c.lineCap = 'round';
-      c.lineWidth = Math.max(1.1, ph * 0.035);
-      c.beginPath();
-      c.moveTo(px, py);
-      c.quadraticCurveTo(px + ph * 0.05, py - ph * 0.55, px + ph * 0.01, py - ph);
-      c.stroke();
-      // 针叶：一串短横，越往上越短
-      for (let j = 0; j < 6; j++) {
-        const yy = py - ph * (0.26 + j * 0.125);
-        const w = ph * (0.30 - j * 0.035);
-        c.lineWidth = Math.max(0.8, ph * 0.022);
-        c.beginPath();
-        c.moveTo(px + ph * 0.01, yy);
-        c.lineTo(px - w, yy - ph * 0.02);
-        c.moveTo(px + ph * 0.01, yy);
-        c.lineTo(px + w, yy - ph * 0.03);
-        c.stroke();
-      }
-      c.restore();
-    }
-  }
 
   S.song = {
     placeholder: false,
@@ -114,155 +36,337 @@
         const c = g.drawingContext;
         const W = g.width, H = g.height;
         V.paper.paint(c, W, H, 'xuan', 1007);
-        const rnd = V.rng(505);
 
-        // 天色：上暖下沉
-        const sky = c.createLinearGradient(0, 0, 0, 720);
-        sky.addColorStop(0, 'rgba(222,209,186,0.60)');
-        sky.addColorStop(1, 'rgba(222,209,186,0)');
+        // ---------- 1 天 ----------
+        const sky = c.createLinearGradient(0, 0, 0, 560);
+        sky.addColorStop(0, 'rgba(203,184,153,0.70)');
+        sky.addColorStop(1, 'rgba(203,184,153,0)');
         c.fillStyle = sky;
-        c.fillRect(0, 0, W, 720);
+        c.fillRect(0, 0, W, 560);
 
-        // ---- 极远：一层淡影，只交代"后面还有山" ----
-        c.save();
-        c.globalAlpha = 0.34;
-        c.fillStyle = M_FAR;
-        c.beginPath();
-        c.moveTo(-40, 420);
-        for (let i = 0; i <= 16; i++) {
-          const x = -40 + i * 128;
-          c.lineTo(x, 420 - Math.abs(Math.sin(i * 1.37 + 0.6)) * 86 - (i % 3) * 14);
-        }
-        c.lineTo(2000, 640);
-        c.lineTo(-40, 640);
-        c.closePath();
-        c.fill();
-        c.restore();
-
-        // ---- 主峰：大到出画。只露一段山腰，下缘斜切进雾里 ----
-        // 不画山脚 —— 一整条水平山脚会把画面切成两半，也会变成一条横贯全屏的色带。
-        const flank = [
-          [-60, 900], [-60, 300], [60, 236], [150, 262], [236, 190], [318, 214],
-          [402, 150], [486, 176], [560, 126], [640, 158], [706, 118], [780, 168],
-          [846, 214], [902, 286], [946, 372], [988, 448], [1024, 512], [1064, 560],
-          [1108, 604], [1152, 646], [1200, 700], [1246, 760], [1300, 820],
-          [1300, 900],
-        ];
-        c.save();
-        c.globalAlpha = 1;
-        c.fillStyle = M_DARK;
-        c.beginPath();
-        c.moveTo(flank[0][0], flank[0][1]);
-        for (let i = 1; i < flank.length; i++) c.lineTo(flank[i][0], flank[i][1]);
-        c.closePath();
-        c.fill();
-        c.restore();
-
-        // 山腰的受光面：整片提亮一档，位置固定在右上坡
-        c.save();
-        c.globalAlpha = 0.30;
-        c.fillStyle = M_MID;
-        c.beginPath();
-        c.moveTo(560, 126); c.lineTo(640, 158); c.lineTo(706, 118); c.lineTo(780, 168);
-        c.lineTo(846, 214); c.lineTo(902, 286); c.lineTo(946, 372);
-        c.lineTo(860, 420); c.lineTo(760, 330); c.lineTo(660, 240); c.closePath();
-        c.fill();
-        c.restore();
-
-        // 皴：沿坡向下，暗部密
-        cun(c, rnd, 60, 150, 560, 560, 380, '#100e0b', 0.46, 0.34);
-        cun(c, rnd, 380, 200, 900, 620, 260, '#100e0b', 0.34, 0.40);
-        cun(c, rnd, 900, 460, 1260, 800, 150, '#100e0b', 0.26, 0.46);
-
-
-        // ---- 主峰与右峰之间的瀑布，在雾里断掉 ----
-        const fx = 968, fy = 372;
-        const fall = c.createLinearGradient(0, fy, 0, 700);
-        fall.addColorStop(0, 'rgba(250,246,236,0.95)');
-        fall.addColorStop(0.7, 'rgba(250,246,236,0.50)');
-        fall.addColorStop(1, 'rgba(250,246,236,0)');
-        c.save();
-        c.fillStyle = fall;
-        const fr = V.rng(404);
-        c.beginPath();
-        c.moveTo(fx - 7, fy);
-        // 两侧都带细微摆动，直边梯形会像一条水泥滑道
-        for (let i = 1; i <= 5; i++) {
-          const yy = fy + ((700 - fy) * i) / 5;
-          c.lineTo(fx - 7 - i * 1.7 + (fr() - 0.5) * 5, yy);
-        }
-        for (let i = 5; i >= 0; i--) {
-          const yy = fy + ((700 - fy) * i) / 5;
-          c.lineTo(fx + 8 + i * 1.7 + (fr() - 0.5) * 5, yy);
-        }
-        c.closePath();
-        c.fill();
-        c.restore();
-
-        // ---- 右峰：矮一截，压在主峰之后 ----
-        c.save();
-        c.globalAlpha = 0.48;
-        c.fillStyle = M_MID;
-        c.beginPath();
-        c.moveTo(1330, 900);
-        c.lineTo(1360, 700); c.lineTo(1404, 620); c.lineTo(1440, 540);
-        c.lineTo(1490, 500); c.lineTo(1524, 528); c.lineTo(1568, 566);
-        c.lineTo(1618, 610); c.lineTo(1680, 660); c.lineTo(1760, 720);
-        c.lineTo(1860, 790); c.lineTo(1960, 860); c.lineTo(1980, 900);
-        c.closePath();
-        c.fill();
-        c.restore();
-
-        // 山脚一起溶进雾（只溶最后一小段，不要整条横带）
-        dissolve(c, 640, 812);
-
-        // ---- 近景：松树长在路肩上 ----
-        grove(c, V.rng(31), 96, 762, 168, 3);
-        grove(c, V.rng(32), 286, 766, 116, 2);
-        grove(c, V.rng(33), 1832, 762, 152, 3);
-        grove(c, V.rng(34), 1688, 766, 104, 2);
-        grove(c, V.rng(35), 1524, 768, 86, 2);
-
-        // 细颗粒抖动：大片平涂在 8-bit + h264 下会压出横向色阶，
-        // 撒一层 ±3% 的噪点就能打散（这不是"质感"，是抗带）
-        const gr = V.rng(991);
-        for (let i = 0; i < 9000; i++) {
-          const gx = gr() * W, gy = gr() * H;
-          c.fillStyle = gr() > 0.5 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.035)';
-          c.fillRect(gx, gy, 1.6, 1.6);
-        }
-
-        // 路肩的草丛：三两根短线一组，沿路稀疏排开
-        const tg = V.rng(77);
-        for (let i = 0; i < 90; i++) {
-          const gx = tg() * W;
-          const gy = 742 + tg() * 20;
-          c.save();
-          c.strokeStyle = 'rgba(46,42,34,0.55)';
-          c.lineWidth = 1.1;
-          for (let k = 0; k < 3; k++) {
-            c.beginPath();
-            c.moveTo(gx + k * 3, gy);
-            c.quadraticCurveTo(gx + k * 5 - 4, gy - 9 - tg() * 6, gx + k * 7 - 9, gy - 16 - tg() * 10);
-            c.stroke();
+        // ---------- 2 远山 ----------
+        for (let k = 0; k < 3; k++) {
+          const base = 356 + k * 38;
+          const nz = K.noise(90 + k);
+          const pts = [];
+          for (let i = 0; i <= 26; i++) {
+            const x = -60 + i * 80;
+            const hh = 26 + K.fbm(nz, i * 0.31, k * 3.7, 2, 0.5) * (70 + k * 26);
+            pts.push([x, base - hh]);
           }
+          pts.push([2020, base + 180], [-60, base + 180]);
+          c.save();
+          c.globalAlpha = [0.30, 0.24, 0.18][k];
+          c.fillStyle = ['#b9b19f', '#a89f8c', '#8e8674'][k];
+          K.path(c, pts);
+          c.fill();
           c.restore();
         }
 
-        V.paper.innerShadow(c, W, H, 0.10, 130);
+        // ---------- 3 左右矮崖 ----------
+        const leftCliff = K.cliff({ x0: -30, x1: 460, yTop: 392, yBot: 700, jag: 13, notch: 0.16, n: 14, step: 3, flare: 40 }, V.rng(21));
+        const rightCliff = K.cliff({ x0: 1352, x1: 1958, yTop: 306, yBot: 700, jag: 16, notch: 0.2, n: 16, step: 4, flare: 46 }, V.rng(22));
+
+        for (const [pts, seed, tone] of [[leftCliff, 31, 0.46], [rightCliff, 32, 0.54]]) {
+          c.save();
+          c.globalAlpha = tone * 0.8;
+          c.fillStyle = '#8d8574';
+          K.path(c, pts);
+          c.fill();
+          c.restore();
+          K.layerWash(c, pts, { n: 12, alpha: 0.08, tone: '#3a352b', seed, bias: 0.6 });
+          K.layerWash(c, pts, { n: 7, alpha: 0.09, tone: '#26221b', seed: seed + 9, bias: 1.2 });
+          K.cunFlow(c, pts, { lines: 10, per: 24, len: [6, 22], spread: 12, alpha: 0.22, thick: 1.2, seed: seed + 1 });
+          K.edgeInk(c, pts, { w: 16, alpha: 0.12, seed: seed + 4 });
+          K.contour(c, pts.slice(0, 16), { color: '#2a2620', w: 2.4, seed: seed + 2 });
+          K.moss(c, pts.slice(0, 16), { step: 8, spread: 9, r: 2.4, alpha: 0.6, seed: seed + 3, threshold: 0.3 });
+        }
+
+        // ---------- 4 主峰 ----------
+        const main = K.cliff({
+          x0: 470, x1: 1268, yTop: 66, yBot: 706, jag: 22, notch: 0.26, n: 22, step: 5, flare: 74,
+        }, V.rng(41));
+
+        // 墨：先一层极淡的底，再罩 20 层，最后补裂隙与短皴
+        // 底子要够深。上一版底只有 0.22 的淡灰，罩完还是一团雾。
+        c.save();
+        c.globalAlpha = 0.62;
+        c.fillStyle = '#4a4438';
+        K.path(c, main);
+        c.fill();
+        c.restore();
+
+        // 罩染：主体加深 + 少量提亮，做出"墨分五色"
+        K.layerWash(c, main, { n: 22, alpha: 0.09, tone: '#231f19', seed: 51, bias: 0.5 });
+        K.layerWash(c, main, { n: 12, alpha: 0.11, tone: '#191612', seed: 52, bias: 1.2 });
+        K.layerWash(c, main, { n: 9, alpha: 0.07, tone: '#a29883', seed: 53, bias: 0.25 });
+
+        K.crevice(c, main, { n: 16, len: 130, ang: 1.42, thick: 3.2, alpha: 0.34, seed: 54 });
+        K.crevice(c, main, { n: 26, len: 60, ang: 1.30, thick: 1.8, alpha: 0.26, seed: 55 });
+
+        // 皴：短笔，只在崖顶一带密
+        K.cunFlow(c, main, { lines: 40, per: 64, len: [6, 22], spread: 18, slant: 0.04, alpha: 0.18, thick: 1.0, seed: 71 });
+        K.cunFlow(c, main, { lines: 22, per: 40, len: [8, 30], spread: 24, slant: 0.06, alpha: 0.16, thick: 1.6, seed: 75 });
+        K.cunFlow(c, main, {
+          lines: 22, per: 30, len: [8, 32], spread: 16, slant: 0.04, alpha: 0.26, thick: 1.5, seed: 74, yTop: 60, yBot: 300,
+        });
+        K.edgeInk(c, main, { w: 24, alpha: 0.16, color: '#080705', seed: 73 });
+
+        K.contour(c, main.slice(0, 23), { color: '#0b0908', w: 4.6, jitter: 2.8, seed: 64 });
+        K.moss(c, main.slice(0, 23), { step: 4.2, spread: 14, r: 3.0, alpha: 0.9, seed: 65, drop: 9, threshold: 0.18 });
+        K.moss(c, main.slice(0, 23), { step: 11, spread: 90, r: 2.2, alpha: 0.34, seed: 66, drop: 40, threshold: 0.42 });
+
+        // ---------- 5 瀑布 ----------
+        const fx = 1150, fy = 212;
+        const fallG = c.createLinearGradient(0, fy, 0, 640);
+        fallG.addColorStop(0, 'rgba(252,249,240,0.94)');
+        fallG.addColorStop(0.45, 'rgba(252,249,240,0.70)');
+        fallG.addColorStop(1, 'rgba(252,249,240,0)');
+        const fr = V.rng(404);
+        c.save();
+        c.fillStyle = fallG;
+        c.beginPath();
+        c.moveTo(fx - 7, fy);
+        for (let i = 1; i <= 7; i++) c.lineTo(fx - 7 - i * 1.1 + (fr() - 0.5) * 5, fy + ((640 - fy) * i) / 7);
+        for (let i = 7; i >= 0; i--) c.lineTo(fx + 8 + i * 1.1 + (fr() - 0.5) * 5, fy + ((640 - fy) * i) / 7);
+        c.closePath();
+        c.fill();
+        c.strokeStyle = 'rgba(20,17,13,0.55)';
+        c.lineWidth = 1.7;
+        c.beginPath(); c.moveTo(fx - 7, fy); c.lineTo(fx - 16, 634); c.stroke();
+        c.beginPath(); c.moveTo(fx + 8, fy); c.lineTo(fx + 18, 634); c.stroke();
+        c.restore();
+
+        // ---------- 6 山脚淡出 ----------
+        // 淡出从 580 才开始，给山体留足实墨；结束点在 742，正好被中景土坡盖住接缝
+        K.fadeBase(c, main, PAPER, 580, 742, 0.95);
+        K.fadeBase(c, leftCliff, PAPER, 560, 742, 0.95);
+        K.fadeBase(c, rightCliff, PAPER, 560, 742, 0.95);
+        K.haze(c, W * 0.5, 740, 1400, 120, PAPER, 0.44);
+
+        // ---------- 7 中景：土坡 + 树 + 亭 ----------
+        const nz2 = K.noise(77);
+        const mounds = [
+          { x0: -40, x1: 520, top: 742 },
+          { x0: 480, x1: 1040, top: 736 },
+          { x0: 1000, x1: 1560, top: 746 },
+          { x0: 1520, x1: 1980, top: 750 },
+        ];
+        for (const m of mounds) {
+          const pts = [];
+          const n = 10;
+          for (let i = 0; i <= n; i++) {
+            const x = V.lerp(m.x0, m.x1, i / n);
+            pts.push([x, m.top + Math.sin(i * 1.3 + m.x0) * 6]);
+          }
+          pts.push([m.x1, 812], [m.x0, 812]);
+          c.save();
+          c.globalAlpha = 0.5;
+          c.fillStyle = '#8b8375';
+          K.path(c, pts);
+          c.fill();
+          c.restore();
+          K.cun(c, pts, { step: 10, len: [6, 18], dir: 0.2, alpha: 0.24, thick: 1.2, seed: 80 + m.x0 });
+        }
+
+        // 树：成丛、留空、大小不一。
+        // 等距排开一定会变成一条篱笆 —— 真画里树是"这里一丛、那里几棵"。
+        const trnd = V.rng(310);
+        let tx = -30;
+        while (tx < W + 40) {
+          const gap = 34 + trnd() * 96;
+          tx += gap;
+          if (trnd() < 0.18) continue;                 // 空档
+          const clusterN = 1 + Math.floor(trnd() * 4);
+          const baseY = 738 + trnd() * 14;
+          const baseH = 30 + trnd() * 26;
+          for (let k = 0; k < clusterN; k++) {
+            const bx = tx + (trnd() - 0.5) * 54;
+            const bh = baseH * (0.62 + trnd() * 0.75);
+            const ty = baseY + (trnd() - 0.5) * 8;
+            const r = V.rng(900 + Math.floor(tx) * 7 + k);
+            c.save();
+            c.strokeStyle = '#2b2721';
+            c.lineWidth = Math.max(1, bh * 0.06);
+            c.lineCap = 'round';
+            c.beginPath();
+            c.moveTo(bx, ty);
+            c.quadraticCurveTo(bx + bh * 0.1, ty - bh * 0.5, bx - bh * 0.05, ty - bh);
+            c.stroke();
+            // 冠形：不规则暗块
+            c.fillStyle = '#16120d';
+            c.globalAlpha = 0.55;
+            c.beginPath();
+            const cy0 = ty - bh * 0.86;
+            const crx = bh * 0.42, cry = bh * 0.30;
+            for (let q = 0; q < 13; q++) {
+              const a = (q / 13) * Math.PI * 2;
+              const rr = 0.62 + r() * 0.52;
+              const px = bx + Math.cos(a) * crx * rr;
+              const py = cy0 + Math.sin(a) * cry * rr;
+              if (q === 0) c.moveTo(px, py); else c.lineTo(px, py);
+            }
+            c.closePath();
+            c.fill();
+            c.globalAlpha = 1;
+            // 点叶
+            const leaf = K.jitterGrid(bx - bh * 0.44, ty - bh * 1.16, bx + bh * 0.44, ty - bh * 0.58, 3.4, 3.4, r, 0.55);
+            c.fillStyle = '#16120d';
+            for (const lf of leaf) {
+              const lx = lf[0], ly = lf[1];
+              const nn = K.fbm(nz2, lx * 0.05, ly * 0.05, 2, 0.5);
+              if (nn < 0.34) continue;
+              c.globalAlpha = 0.35 + nn * 0.6;
+              c.beginPath();
+              c.ellipse(lx, ly, 1.3 + nn * 2.4, 1.1 + nn * 2.0, nn * 3, 0, Math.PI * 2);
+              c.fill();
+            }
+            c.restore();
+          }
+        }
+        // 崖肩上的树：真画会在崖顶和崖腰点几丛，交代尺度
+        const ledgeTrees = [[508, 96, 26], [560, 120, 20], [1178, 110, 22],
+          [1214, 150, 18], [640, 214, 16], [1042, 246, 18], [900, 300, 14]];
+        for (let li = 0; li < ledgeTrees.length; li++) {
+          const lt = ledgeTrees[li];
+          const r2 = V.rng(600 + li);
+          for (let q = 0; q < 3; q++) {
+            const bx = lt[0] + (r2() - 0.5) * lt[2] * 1.4;
+            const bh = lt[2] * (0.7 + r2() * 0.5);
+            c.save();
+            c.strokeStyle = '#14110c';
+            c.lineWidth = Math.max(1, bh * 0.09);
+            c.beginPath();
+            c.moveTo(bx, lt[1]);
+            c.lineTo(bx + (r2() - 0.5) * 4, lt[1] - bh);
+            c.stroke();
+            c.fillStyle = '#14110c';
+            c.globalAlpha = 0.85;
+            c.beginPath();
+            c.ellipse(bx, lt[1] - bh * 1.05, bh * 0.5, bh * 0.32, 0, 0, Math.PI * 2);
+            c.fill();
+            c.restore();
+          }
+        }
+
+        // 亭
+        c.save();
+        c.fillStyle = '#1b1813';
+        c.beginPath();
+        c.moveTo(1188, 736); c.lineTo(1232, 736); c.lineTo(1246, 716); c.lineTo(1174, 716);
+        c.closePath(); c.fill();
+        c.fillRect(1194, 736, 3, 20);
+        c.fillRect(1222, 736, 3, 20);
+        c.restore();
+
+        // ---------- 8 山道 ----------
+        const pathG = c.createLinearGradient(0, 812, 0, 852);
+        pathG.addColorStop(0, 'rgba(234,225,204,0.97)');
+        pathG.addColorStop(1, 'rgba(221,209,185,0.97)');
+        c.fillStyle = pathG;
+        c.fillRect(0, 812, W, 40);
+        c.save();
+        c.strokeStyle = 'rgba(56,50,41,0.42)';
+        c.lineWidth = 1.6;
+        c.beginPath(); c.moveTo(0, 812); c.lineTo(W, 812); c.stroke();
+        c.beginPath(); c.moveTo(0, 852); c.lineTo(W, 852); c.stroke();
+        c.restore();
+
+        // ---------- 9 河滩 + 前景坡石 ----------
+        const ng = V.rng(120);
+        c.save();
+        c.strokeStyle = 'rgba(66,60,49,0.26)';
+        c.lineWidth = 1.3;
+        for (let i = 0; i < 11; i++) {
+          const y = 870 + i * 17 + ng() * 6;
+          c.beginPath();
+          c.moveTo(ng() * 260, y);
+          c.lineTo(W - ng() * 260, y + (ng() - 0.5) * 6);
+          c.stroke();
+        }
+        c.restore();
+        c.save();
+        c.strokeStyle = 'rgba(42,38,30,0.58)';
+        c.lineWidth = 1.25;
+        c.lineCap = 'round';
+        for (let i = 0; i < 420; i++) {
+          const gx = ng() * W;
+          const gy = 858 + Math.pow(ng(), 0.62) * 224;
+          c.beginPath();
+          c.moveTo(gx, gy);
+          c.lineTo(gx + (ng() - 0.5) * 7, gy - (6 + ng() * 16));
+          c.stroke();
+        }
+        c.restore();
+        for (let i = 0; i < 34; i++) {
+          c.save();
+          c.globalAlpha = 0.5 + ng() * 0.45;
+          c.fillStyle = '#332f27';
+          c.beginPath();
+          c.ellipse(ng() * W, 872 + ng() * 186, 5 + ng() * 26, 3 + ng() * 13, ng() * 3, 0, Math.PI * 2);
+          c.fill();
+          c.restore();
+        }
+
+        const boulder = (bx, by, bw, bh, seed) => {
+          const r = V.rng(seed);
+          const pts = [];
+          for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * Math.PI * 2;
+            const rr = 0.5 + r() * 0.2;
+            pts.push([bx + Math.cos(a) * bw * rr, by + Math.sin(a) * bh * rr]);
+          }
+          c.save();
+          c.fillStyle = '#2b2721';
+          K.path(c, pts);
+          c.fill();
+          c.restore();
+          K.clipped(c, pts, (cc) => {
+            cc.globalAlpha = 0.3;
+            cc.fillStyle = PAPER;
+            for (let i = 0; i < 10; i++) {
+              cc.beginPath();
+              cc.ellipse(bx + (r() - 0.5) * bw * 0.7, by + (r() - 0.5) * bh * 0.7,
+                bw * (0.05 + r() * 0.16), bh * (0.04 + r() * 0.12), r() * 3, 0, Math.PI * 2);
+              cc.fill();
+            }
+            cc.globalAlpha = 0.55;
+            cc.strokeStyle = '#100e0a';
+            for (let i = 0; i < 26; i++) {
+              cc.lineWidth = 0.8 + r() * 1.8;
+              const sx = bx + (r() - 0.5) * bw * 0.8;
+              const sy = by + (r() - 0.5) * bh * 0.8;
+              cc.beginPath();
+              cc.moveTo(sx, sy);
+              cc.lineTo(sx + (r() - 0.5) * 26, sy + 10 + r() * 24);
+              cc.stroke();
+            }
+          });
+          K.contour(c, pts.concat([pts[0]]), { color: '#0f0d0a', w: 2.2, seed: seed + 1 });
+        };
+        boulder(48, 1042, 210, 150, 201);
+        boulder(224, 1074, 140, 104, 202);
+        boulder(1888, 1036, 236, 168, 203);
+        boulder(1700, 1066, 156, 116, 204);
+
+
+        // ---------- 10 颗粒 + 暗角 ----------
+        const gr = V.rng(991);
+        for (let i = 0; i < 12000; i++) {
+          c.fillStyle = gr() > 0.5 ? 'rgba(255,255,255,0.030)' : 'rgba(0,0,0,0.030)';
+          c.fillRect(gr() * W, gr() * H, 1.6, 1.6);
+        }
+        V.paper.innerShadow(c, W, H, 0.13, 140);
       }, { w: V.W, h: V.H });
 
       // ---------------- 镜头 ----------------
       const push = V.ease.inOutCubic(V.clamp((u - 2.0) / 3.2));
-      // 推镜不能把山推没了：1.95 倍时可见高度只有 513 单位，画面里只剩地面。
-      // 1.72 倍 + 把镜头压在 690，山脚、路、骑手刚好同框，骑手落在下三分之一。
       const cam = {
         x: V.lerp(V.STAGE * 0.5, V.RIDER_X + 160, push),
         y: V.lerp(V.STAGE * 0.5, 690, push),
         zoom: V.lerp(0.96, 1.72, push),
       };
 
-      // 远景只做轻微视差（整块放大会糊成一团）
       ctx.save();
       ctx.translate(960, 540);
       ctx.scale(1 + push * 0.14, 1 + push * 0.14);
@@ -270,34 +374,20 @@
       ctx.drawImage(baked.canvas, 0, 0);
       ctx.restore();
 
-      // 漂移的雾：用**椭圆径向渐变**，四边都羽化。
-      // 早先用横向线性渐变铺 rect，左右是软的、上下是硬的 ——
-      // 于是山体上出现三条边缘笔直的横带，看着像色阶断层。
       for (let i = 0; i < 3; i++) {
-        const y = 486 + i * 76;
+        const y = 640 + i * 46;
         const cx = (((t * (7 + i * 3)) % 2600) + 2600) % 2600 - 340;
-        ctx.save();
-        ctx.translate(cx, y);
-        ctx.scale(2.6, 0.34);
-        const gg = ctx.createRadialGradient(0, 0, 0, 0, 0, 330);
-        gg.addColorStop(0, `rgba(246,240,228,${0.34 - i * 0.07})`);
-        gg.addColorStop(0.55, `rgba(246,240,228,${0.16 - i * 0.04})`);
-        gg.addColorStop(1, 'rgba(246,240,228,0)');
-        ctx.fillStyle = gg;
-        ctx.beginPath();
-        ctx.arc(0, 0, 330, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        K.haze(ctx, cx, y, 900, 96, PAPER, 0.30 - i * 0.06);
       }
 
       V.enterCam(ctx, cam);
-      B.drawRoad(ctx, t, { color: '#c6bda8', depth: 74, grain: 0.85, speed: 0.8 });
+      B.drawRoad(ctx, t, { color: '#d3cab4', depth: 34, grain: 0.5, speed: 0.8 });
       B.drawRider(ctx, t, {
         scale: 0.30,
         shadow: true,
-        shadowStyle: { alpha: 0.08, color: '#2a2622' },
+        shadowStyle: { alpha: 0.10, color: '#2a2622' },
         pelicanStyle: {
-          body: '#f1ebdd', bodyShade: '#e0d7c3', line: '#2b2720',
+          body: '#f4eee0', bodyShade: '#e2d9c4', line: '#2b2720',
           beak: '#c9a35c', beakDark: '#a07f3e', pouch: '#b98a52', pouchShade: '#96703f',
           leg: '#a8813f', eye: '#2b2720', lw: 1.8, feather: 0.25,
         },

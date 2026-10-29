@@ -87,6 +87,32 @@ V.base.drawRoad(ctx, t, { color: V.shade(底色, 偏移), depth: 150, grain: 1 }
 
 画框要画在路面**之前**，让路面盖住画框底边；否则一条横线横穿路面，像路面漏出了画面。
 
+### 3.2b 水墨版块：用 `src/kit/ink.js`
+
+03/04/05/06/09 这几格要画成"像真迹的水墨"，别自己瞎撒笔画。kit 里现成的零件：
+
+```js
+const K = V.ink;
+const mass = K.cliff({ x0, x1, yTop, yBot, jag, notch, step, flare }, V.rng(seed));
+K.bleed(c, mass, { w: 30 });                    // 轮廓外一圈极淡的渗墨
+K.layerWash(c, mass, { n: 22, alpha: 0.09 });   // 分层罩染（墨分五色）
+K.cunFlow(c, mass, { lines: 40, per: 64, len: [6, 22] }); // 顺流线的短皴
+K.edgeInk(c, mass, { w: 26, alpha: 0.2 });      // 积墨边（墨在纸边积住）
+K.moss(c, ridgePts, { step: 4, spread: 14 });   // 苔点沿山脊
+K.fadeBase(c, mass, PAPER, 580, 742);           // 山脚在轮廓**内部**淡出
+```
+
+四条硬经验（都是踩出来的）：
+
+1. **皴要短**（6–26px）。拉到 100px 就不是皴，是一块垂下来的布帘。
+2. **笔触必须裁进轮廓**。不裁的话竖线会跑到天上，看着像下暴雨。
+3. **山脚不要盖雾带**，在轮廓内部用纸色渐变抹掉。盖一条雾带一定留下一条看得见的边。
+4. **山体是中间调**，不是近乎纯黑。高对比会让整格变成矢量插画；
+   真迹只有脊线、折缝、苔点这几处是重的。
+
+**不要用 p5.brush。** 无头环境下它的坐标系和填充行为不可控（fill 的 alpha 是 0–255，
+`polygon` 会被粗笔刷成一坨实黑，坐标还有偏移）。`V.layer.bakeInk` 留着备用，但当前不用。
+
 ### 3.3 静态层必须烘焙
 
 ```js

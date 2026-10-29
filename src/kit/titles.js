@@ -123,7 +123,7 @@
     const x0 = align === 'right' ? o.x - colW : align === 'center' ? o.x - colW / 2 : o.x;
     const eraSize = Math.max(15, size * 0.44);
     const totalH = cnChars.length * lh;
-    const inkIsLight = V.base.tintLum(o.ink) / 255 > 0.5;
+    const inkIsLight = typeof o.ink === 'string' && V.base.tintLum(o.ink) / 255 > 0.5;
     const slipFill = o.slipFill || (inkIsLight ? 'rgba(22,18,14,0.90)' : 'rgba(250,246,236,0.95)');
     const slipLine = o.slipLine || (inkIsLight ? 'rgba(250,246,236,0.42)' : 'rgba(58,50,40,0.48)');
 
@@ -162,8 +162,14 @@
       ctx.restore();
     }
 
-    // ---- 年代：在标题列左侧，小一号 ----
-    const eraX = x0 - size * 0.80;
+    // ---- 年代：在标题列左侧，小一号。
+    //      有框的时候必须让到**框外**，否则被框的边压掉半个字（埃及那格踩过）。 ----
+    let eraX = x0 - size * 0.80;
+    if (o.border === 'cartouche') {
+      eraX = x0 + colW / 2 - (colW + size * 1.44) / 2 - eraSize * 0.85;
+    } else if (o.border === 'slip') {
+      eraX = x0 + colW / 2 - (colW + size * 0.92) / 2 - eraSize * 0.85;
+    }
     vtext(ctx, sc.era, eraX, o.y + size * 0.20, {
       font: 'cn', size: eraSize, color: o.accent, weight: 400,
     });
@@ -413,7 +419,12 @@
   /** 取某一格的题名参数（版块里用：V.titles.opts('sahara', { dur: meta.dur })） */
   K.opts = function (id, extra) {
     const p = K.PLAN[id] || {};
-    return Object.assign({ cnFont: 'cn' }, p, extra);
+    const o = Object.assign({ cnFont: 'cn' }, p, extra);
+    // 默认墨色必须是真的深墨。早先留空 → tintLum(undefined) 退回 #888888（亮度 0.53），
+    // 被当成"浅墨"，于是浅底上给了深签条 + 深字，整个题名糊成一块黑。
+    if (o.ink == null) o.ink = '#2a2622';
+    if (o.accent == null) o.accent = 'rgba(42,38,34,0.70)';
+    return o;
   };
 
   /**
@@ -452,7 +463,7 @@
     egypt:     { style: 'vertical', x: 1268, y: 178, size: 54, align: 'left', border: 'cartouche' },
     han:       { style: 'vertical', x: 508,  y: 190, size: 50, align: 'left' },
     tang:      { style: 'vertical', x: 1428, y: 220, size: 40, align: 'right' },
-    song:      { style: 'vertical', x: 1436, y: 156, size: 34, align: 'right' },
+    song:      { style: 'vertical', x: 1878, y: 128, size: 38, align: 'right' },
     qingming:  { style: 'vertical', x: 486,  y: 180, size: 44, align: 'left', border: 'slip' },
     maya:      { style: 'plaque',   x: 452,  y: 128, size: 33, align: 'left',
                  gold: 'rgba(214,168,96,0.95)', goldSoft: 'rgba(214,168,96,0.55)' },

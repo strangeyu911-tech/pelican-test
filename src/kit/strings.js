@@ -68,6 +68,25 @@
     loading: '载入中', ready: '就绪',
   };
 
+  // ---------- 19 竖屏短视频那格的界面（全部虚构，不对应任何真实平台）----------
+  S.feed = {
+    app: '鹈视',
+    tabFollow: '关注',
+    tabForYou: '推荐',
+    // 浮在画面上的弹幕式评论
+    comments: [
+      { user: '海边路人', text: '前方高能' },
+      { user: 'pelican_fan', text: 'W pelican' },
+      { user: '鹈粉一号', text: '它真的在骑？？' },
+    ],
+    handle: '@鹈鹕骑士',
+    tags: '#竖屏短视频 #2020年代 #鹈鹕测试',
+    sub: 'Vertical Short Video · 2020s',
+    music: '鹈行 BGM · @鹈鹕骑士',
+    share: '分享',
+    counts: ['9.3万', '2.5万', '1.2万', '分享'],
+  };
+
   // ---------- 供字体子集化使用：把所有可见文字拼成一个大字符串 ----------
   S.allGlyphs = function () {
     const parts = [S.title, S.titleEn, S.subtitle, S.subtitleEn];
@@ -75,9 +94,13 @@
     for (const s of S.scenes) parts.push(s.cn, s.en, s.era);
     parts.push(...S.outro.lines, ...S.outro.linesEn, S.outro.placard, S.outro.placardEn, S.outro.empty);
     parts.push(S.ui.play, S.ui.pause, S.ui.scene, S.ui.loading, S.ui.ready);
+    // 竖屏那格的界面文案
+    const f = S.feed;
+    parts.push(f.app, f.tabFollow, f.tabForYou, f.handle, f.tags, f.sub, f.music, f.share);
+    parts.push(...f.comments.map((c) => c.user), ...f.comments.map((c) => c.text), ...f.counts);
     // 常用标点、数字、拉丁字母，兜底
     parts.push('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
-    parts.push('—–·、。，：；！？（）《》「」『』…　％');
+    parts.push('—–·、。，：；！？（）《》「」『』…　％＠＃');
     return parts.join('');
   };
 
