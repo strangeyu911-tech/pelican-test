@@ -471,7 +471,11 @@
                  gold: '#b03a2e', goldSoft: 'rgba(176,58,46,0.45)',
                  plaqueFill: 'rgba(247,240,222,0.97)',
                  plaqueInk: '#1a1512', ink: '#1a1512', accent: 'rgba(26,21,18,0.62)' },
-    mughal:    { style: 'plaque',   x: 960,  y: 92,  size: 37, align: 'center' },
+    mughal:    { style: 'plaque',   x: 960,  y: 96,  size: 37, align: 'center',
+                 // 莫卧儿的牌子是金框 + 深红底 + 象牙字
+                 gold: '#c9a227', goldSoft: 'rgba(201,162,39,0.55)',
+                 plaqueFill: 'rgba(120,26,26,0.95)',
+                 plaqueInk: '#f2e8d0', ink: '#f2e8d0', accent: 'rgba(242,232,208,0.72)' },
     bada:      { style: 'vertical', x: 1396, y: 150, size: 56, align: 'left', seal: true },
     wayang:    { style: 'plaque',   x: 452,  y: 112, size: 37, align: 'left' },
     ukiyo:     { style: 'vertical', x: 1404, y: 150, size: 42, align: 'right', border: 'slip' },
