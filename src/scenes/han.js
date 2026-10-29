@@ -20,102 +20,250 @@
   const LINE = '#e8e0cc';          // 刻进去的凹槽 = 白线
   const LINE_DIM = 'rgba(232,224,204,0.62)';
 
-  /** 拓片上的白线：略有抖动，像刀刻的**
-   *  @param {number} w 线宽
+  // ---------------- 折线采样：所有曲线都先变成折线，才能逐段控制线宽 ----------------
+
+  function sampleQuad(p0, p1, p2, n) {
+    const out = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, u = 1 - t;
+      out.push([u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0],
+        u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]]);
+    }
+    return out;
+  }
+
+  function sampleBez(p0, p1, p2, p3, n) {
+    const out = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, u = 1 - t;
+      const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+      out.push([a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0],
+        a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]]);
+    }
+    return out;
+  }
+
+  /**
+   * 拓片上的白线 = 刻进石头里的凹槽。
+   *
+   * 真拓片**没有等宽的线**：刻得深的地方白线宽，刻浅的地方窄，石头崩了的地方干脆断掉。
+   * 所以这里逐段画：每段线宽 = 基础宽 × 包络(两端细) × 噪声，另有一段段的断口，
+   * 再在边上带一条极细的"毛边"（刀锋刮出来的）。
+   *
+   * @param {object} o { seed, breaks, taper, closed }
    */
-  function incise(c, pts, w, col, closed) {
+  function incise(c, pts, w, col, o) {
+    const opt = o || {};
+    const base = w || 2.6;
+    const color = col || LINE;
+    const rnd = V.rng(opt.seed || 1);
+    const list = pts.slice();
+    if (opt.closed) list.push(list[0]);
+
+    // 沿线累计长度，用来做包络
+    const seg = [];
+    let total = 0;
+    for (let i = 1; i < list.length; i++) {
+      const d = Math.hypot(list[i][0] - list[i - 1][0], list[i][1] - list[i - 1][1]);
+      seg.push(d);
+      total += d;
+    }
+    if (total < 1) return;
+
+    // 断口：在总长的若干百分比处不开刀
+    const breaks = [];
+    const nb = opt.breaks == null ? Math.round(total / 260) : opt.breaks;
+    for (let i = 0; i < nb; i++) {
+      const at = rnd() * total;
+      const len = 6 + rnd() * (opt.breakLen || 34);
+      breaks.push([at, at + len]);
+    }
+    const broken = (d) => {
+      for (const b of breaks) if (d > b[0] && d < b[1]) return true;
+      return false;
+    };
+
     c.save();
-    c.strokeStyle = col || LINE;
-    c.lineWidth = w || 2.6;
+    c.strokeStyle = color;
+    // 用平头：圆头会在每一小段的末端鼓出一个"珠子"，整条线看着像串珠
+    c.lineCap = 'butt';
     c.lineJoin = 'round';
-    c.lineCap = 'round';
-    c.beginPath();
-    c.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
-    if (closed) c.closePath();
-    c.stroke();
+
+    let run = 0;
+    for (let i = 1; i < list.length; i++) {
+      const a = list[i - 1], b = list[i];
+      const d = seg[i - 1];
+      const steps = Math.max(1, Math.round(d / 7));
+      let px = a[0], py = a[1];
+      for (let k = 1; k <= steps; k++) {
+        const t = k / steps;
+        const x = a[0] + (b[0] - a[0]) * t;
+        const y = a[1] + (b[1] - a[1]) * t;
+        const along = run + d * t;
+        if (!broken(along)) {
+          // 包络：两端细、中间粗
+          const e = opt.taper === false ? 1
+            : Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, along / total))), 0.45);
+          c.lineWidth = Math.max(0.7, base * (0.70 + e * 0.50) * (0.86 + rnd() * 0.28));
+          c.globalAlpha = 0.86 + rnd() * 0.14;
+          c.beginPath();
+          c.moveTo(px, py);
+          c.lineTo(x, y);
+          c.stroke();
+        }
+        px = x; py = y;
+      }
+      run += d;
+    }
+
+    // 毛边：贴着线扫一道极细的、断续的痕
+    if (opt.burr !== false) {
+      c.globalAlpha = 0.30;
+      c.lineWidth = Math.max(0.6, base * 0.34);
+      c.lineCap = 'butt';
+      let run2 = 0;
+      for (let i = 1; i < list.length; i++) {
+        const a = list[i - 1], b = list[i];
+        const d = seg[i - 1];
+        const steps = Math.max(1, Math.round(d / 14));
+        for (let k = 1; k <= steps; k++) {
+          if (rnd() > 0.55) continue;
+          const t0 = (k - 1) / steps, t1 = k / steps;
+          c.beginPath();
+          c.moveTo(a[0] + (b[0] - a[0]) * t0 + (rnd() - 0.5) * 2.4,
+            a[1] + (b[1] - a[1]) * t0 + (rnd() - 0.5) * 2.4);
+          c.lineTo(a[0] + (b[0] - a[0]) * t1 + (rnd() - 0.5) * 2.4,
+            a[1] + (b[1] - a[1]) * t1 + (rnd() - 0.5) * 2.4);
+          c.stroke();
+        }
+        run2 += d;
+      }
+    }
     c.restore();
   }
 
-  /** 菱格边框：两排交错的菱形 */
+  /** 圆弧采样成折线 */
+  function sampleArc(cx, cy, r, a0, a1, n) {
+    const out = [];
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + (a1 - a0) * (i / n);
+      out.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+    }
+    return out;
+  }
+
+  /** 菱格边框：上下一排菱形，每条边都是刻出来的（有线宽变化、会断） */
   function lozengeBand(c, x0, x1, y, h, rnd) {
     const w = h * 1.15;
-    for (let x = x0, i = 0; x < x1; x += w, i++) {
+    let i = 0;
+    for (let x = x0; x < x1; x += w, i++) {
       const cy = y + h / 2;
-      c.save();
-      c.strokeStyle = LINE;
-      c.lineWidth = 2.0;
-      c.beginPath();
-      c.moveTo(x, cy);
-      c.lineTo(x + w / 2, y);
-      c.lineTo(x + w, cy);
-      c.lineTo(x + w / 2, y + h);
-      c.closePath();
-      c.stroke();
-      // 菱形里点一个小圆
+      incise(c, [[x, cy], [x + w / 2, y], [x + w, cy], [x + w / 2, y + h]], 2.2, LINE,
+        { closed: true, seed: 900 + i, breaks: 0 });
       if (i % 2 === 0) {
-        c.beginPath();
-        c.arc(x + w / 2, cy, h * 0.13, 0, Math.PI * 2);
-        c.stroke();
+        incise(c, sampleArc(x + w / 2, cy, h * 0.13, 0, Math.PI * 2, 14), 1.8, LINE,
+          { closed: true, seed: 950 + i, breaks: 0, burr: false });
       }
-      c.restore();
     }
-    incise(c, [[x0, y], [x1, y]], 3.0);
-    incise(c, [[x0, y + h], [x1, y + h]], 3.0);
+    incise(c, [[x0, y], [x1, y]], 3.2, LINE, { seed: 11, breaks: 3, breakLen: 22 });
+    incise(c, [[x0, y + h], [x1, y + h]], 3.2, LINE, { seed: 12, breaks: 3, breakLen: 22 });
   }
 
-  /** 绳纹边框：两股绳交缠 */
+  /** 绳纹边框：两股绳交缠，同样逐段控制线宽 */
   function ropeBand(c, x0, x1, y, h) {
     const w = h * 0.9;
-    c.save();
-    c.strokeStyle = LINE;
-    c.lineWidth = 2.2;
-    c.lineJoin = 'round';
-    for (let x = x0; x < x1; x += w) {
-      c.beginPath();
-      c.moveTo(x, y + h * 0.5);
-      c.quadraticCurveTo(x + w * 0.5, y, x + w, y + h * 0.5);
-      c.stroke();
-      c.beginPath();
-      c.moveTo(x, y + h * 0.5);
-      c.quadraticCurveTo(x + w * 0.5, y + h, x + w, y + h * 0.5);
-      c.stroke();
+    let i = 0;
+    for (let x = x0; x < x1; x += w, i++) {
+      incise(c, sampleQuad([x, y + h * 0.5], [x + w * 0.5, y], [x + w, y + h * 0.5], 9),
+        2.2, LINE, { seed: 300 + i, breaks: 0 });
+      incise(c, sampleQuad([x, y + h * 0.5], [x + w * 0.5, y + h], [x + w, y + h * 0.5], 9),
+        2.2, LINE, { seed: 400 + i, breaks: 0 });
     }
-    c.restore();
-    incise(c, [[x0, y], [x1, y]], 2.4);
-    incise(c, [[x0, y + h], [x1, y + h]], 2.4);
+    incise(c, [[x0, y], [x1, y]], 2.6, LINE, { seed: 21, breaks: 3, breakLen: 18 });
+    incise(c, [[x0, y + h], [x1, y + h]], 2.6, LINE, { seed: 22, breaks: 3, breakLen: 18 });
   }
 
-  /** 云气纹：一长条 S 形主脉，两端各卷一个涡（外圈留口 + 内圈），另出一条支脉。 */
-  function cloudCurl(c, x, y, s, dir) {
-    c.save();
-    c.strokeStyle = LINE_DIM;
-    c.lineWidth = 2.2;
-    c.lineCap = 'round';
+  /** 云气纹：一长条 S 形主脉 + 两端卷涡 + 支脉。全部走 incise，所以有线宽与断口。 */
+  function cloudCurl(c, x, y, s, dir, seed) {
+    const sd = seed || 1;
     // 主脉
-    c.beginPath();
-    c.moveTo(x, y);
-    c.bezierCurveTo(x + s * 0.40 * dir, y - s * 0.52,
-      x + s * 0.92 * dir, y + s * 0.26,
-      x + s * 1.42 * dir, y - s * 0.06);
-    c.stroke();
-    // 两端的涡：外圈留个口，内圈收进去 —— 这才是卷云，不是套在一起的两个圆
+    incise(c, sampleBez([x, y],
+      [x + s * 0.40 * dir, y - s * 0.52],
+      [x + s * 0.92 * dir, y + s * 0.26],
+      [x + s * 1.42 * dir, y - s * 0.06], 26), 2.4, LINE_DIM, { seed: sd, breakLen: 26 });
+    // 两端的涡
     for (const t of [0, 1]) {
       const ex = x + s * 1.42 * dir * t;
       const ey = y - s * 0.06 * t;
-      c.beginPath();
-      c.arc(ex, ey, s * 0.17, 0.55, Math.PI * 2.1);
-      c.stroke();
-      c.beginPath();
-      c.arc(ex + s * 0.09 * dir, ey + s * 0.03, s * 0.08, 0.2, Math.PI * 1.7, true);
-      c.stroke();
+      incise(c, sampleArc(ex, ey, s * 0.17, 0.55, Math.PI * 2.1, 16), 2.2, LINE_DIM,
+        { seed: sd + t * 7, breaks: 1, breakLen: 10 });
+      incise(c, sampleArc(ex + s * 0.09 * dir, ey + s * 0.03, s * 0.08, 0.2, Math.PI * 1.7, 12),
+        1.8, LINE_DIM, { seed: sd + 3 + t, breaks: 0, burr: false });
     }
     // 支脉
-    c.beginPath();
-    c.moveTo(x + s * 0.52 * dir, y - s * 0.22);
-    c.quadraticCurveTo(x + s * 0.70 * dir, y - s * 0.60, x + s * 0.94 * dir, y - s * 0.50);
-    c.stroke();
-    c.restore();
+    incise(c, sampleQuad([x + s * 0.52 * dir, y - s * 0.22],
+      [x + s * 0.70 * dir, y - s * 0.60],
+      [x + s * 0.94 * dir, y - s * 0.50], 14), 2.0, LINE_DIM, { seed: sd + 11, breakLen: 14 });
+  }
+
+
+  /** 阙：汉代最典型的门楼 —— 两根柱子、一道横楣、上面一片瓦顶。
+   *  汉画像石里几乎每块都有它，加一座就把右侧的空黑填满了。 */
+  function queGate(c, x, baseY, w, h, seed) {
+    const rnd = V.rng(seed || 71);
+    const half = w / 2;
+    const pillarW = w * 0.11;
+    const topY = baseY - h;
+
+    // 两根柱子（略带收分）
+    for (const sx of [-1, 1]) {
+      const px = x + sx * (half - pillarW);
+      const pts = [
+        [px - pillarW * 0.5, baseY],
+        [px - pillarW * 0.42, baseY - h * 0.62],
+        [px - pillarW * 0.34, topY + h * 0.10],
+        [px + pillarW * 0.34, topY + h * 0.10],
+        [px + pillarW * 0.42, baseY - h * 0.62],
+        [px + pillarW * 0.5, baseY],
+      ];
+      incise(c, pts, 2.6, LINE, { closed: true, seed: seed + sx + 2, breaks: 0 });
+      // 柱身上的横线（汉代木构的束带）
+      for (let k = 1; k < 4; k++) {
+        const y = baseY - h * (0.18 + k * 0.14);
+        incise(c, [[px - pillarW * 0.42, y], [px + pillarW * 0.42, y]], 1.8, LINE_DIM,
+          { seed: seed + k * 7, breaks: 0, burr: false });
+      }
+    }
+
+    // 横楣
+    incise(c, [[x - half, topY + h * 0.10], [x + half, topY + h * 0.10]], 3.0, LINE,
+      { seed: seed + 11, breaks: 2, breakLen: 16 });
+    incise(c, [[x - half, topY + h * 0.02], [x + half, topY + h * 0.02]], 2.2, LINE,
+      { seed: seed + 12, breaks: 1, breakLen: 14 });
+
+    // 瓦顶：一条微微下凹的檐线 + 两端的翘角
+    const eave = [];
+    for (let i = 0; i <= 12; i++) {
+      const t = i / 12;
+      eave.push([x - half * 1.06 + half * 2.12 * t, topY - Math.sin(t * Math.PI) * h * 0.055]);
+    }
+    incise(c, eave, 3.2, LINE, { seed: seed + 21, breaks: 2, breakLen: 18 });
+    // 翘角
+    incise(c, [[x - half * 1.06, topY], [x - half * 1.16, topY - h * 0.055]], 2.4, LINE,
+      { seed: seed + 22, breaks: 0 });
+    incise(c, [[x + half * 1.06, topY], [x + half * 1.16, topY - h * 0.055]], 2.4, LINE,
+      { seed: seed + 23, breaks: 0 });
+    // 瓦垄
+    for (let i = 1; i < 9; i++) {
+      const t = i / 9;
+      const bx = x - half * 1.02 + half * 2.04 * t;
+      const by = topY - Math.sin(t * Math.PI) * h * 0.055;
+      incise(c, [[bx, by], [bx, by + h * 0.075]], 1.5, LINE_DIM,
+        { seed: seed + 30 + i, breaks: 0, burr: false });
+    }
+    // 顶脊
+    incise(c, [[x - half * 0.94, topY + h * 0.075], [x + half * 0.94, topY + h * 0.075]], 2.0, LINE_DIM,
+      { seed: seed + 40, breaks: 1, breakLen: 12 });
   }
 
   S.han = {
@@ -154,14 +302,14 @@
         ropeBand(c, 18, W - 18, H - 96, 40);
 
         // ---- 云气 ----
-        cloudCurl(c, 90, 236, 250, 1);
-        cloudCurl(c, 1660, 300, 232, -1);
-        cloudCurl(c, 1400, 168, 190, 1);
+        cloudCurl(c, 90, 236, 250, 1, 501);
+        queGate(c, 1620, Math.round(V.ROAD_Y * V.U) - 9, 300, 400, 71);
+        cloudCurl(c, 1400, 168, 190, 1, 505);
 
         // ---- 题名 -->
         // （题名由 V.titles 画，这里只在它后面点两道竖线当"榜题"的框）
-        incise(c, [[470, 150], [470, 420]], 2.0, LINE_DIM);
-        incise(c, [[600, 150], [600, 420]], 2.0, LINE_DIM);
+        incise(c, [[470, 150], [470, 420]], 2.4, LINE_DIM, { seed: 61, breakLen: 26 });
+        incise(c, [[600, 150], [600, 420]], 2.4, LINE_DIM, { seed: 62, breakLen: 26 });
 
         // ---- 石头的裂缝：从左上斜下来，穿过整个画面 ----
         const crack = [];
@@ -175,8 +323,8 @@
           if (cy > H + 40) break;
         }
         // 裂缝是双线：一条深、一条浅，才有"崩开"的感觉
-        incise(c, crack, 5.0, 'rgba(10,9,8,0.9)');
-        incise(c, crack.map((q) => [q[0] + 3, q[1] + 2]), 2.0, LINE_DIM);
+        incise(c, crack, 5.4, 'rgba(10,9,8,0.9)', { seed: 77, breaks: 3, breakLen: 22, burr: false });
+        incise(c, crack.map((q) => [q[0] + 3, q[1] + 2]), 2.0, LINE_DIM, { seed: 78, breakLen: 30 });
 
         // 裂缝旁边的碎屑
         for (let i = 0; i < 90; i++) {
